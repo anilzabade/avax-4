@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+
+contract GamingToken is ERC20, Ownable, ERC20Burnable {
+    event Rewarded(address indexed gamer, uint256 rewardQuota);
+    event Redeemed(address indexed gamer, uint256 bountyNumber);
+    event PowerUpObtained(address indexed gamer, uint256 powerUpCount);
+
+    mapping(address => uint256) private powerUpCounts;
+
+    constructor(address initialOwner) ERC20("GAMETOKEN", "GMT") Ownable(initialOwner) {}
+
+    function mint(address account, uint256 amount) external onlyOwner {
+        _mint(account, amount);
+    }
+
+    function burn(uint256 amount) public override {
+        _burn(msg.sender, amount);
+    }
+
+    function transferTokens(address recipient, uint256 amount) external {
+        _transfer(msg.sender, recipient, amount);
+    }
+
+    function redeemBounty(uint256 bountyNumber) external {
+        uint256 tokensToBurn;
+
+        require(bountyNumber >= 1 && bountyNumber <= 3, "Invalid bounty");
+
+        if (bountyNumber == 1) {
+            tokensToBurn = 200; // Redeem sword for 200 tokens
+        } else if (bountyNumber == 2) {
+            tokensToBurn = 500; // Redeem shield for 500 tokens
+        } else {
+            tokensToBurn = 1000; // Redeem armor for 1000 tokens
+        }
+
+        require(balanceOf(msg.sender) >= tokensToBurn, "Not enough funds");
+        _burn(msg.sender, tokensToBurn);
+        emit Redeemed(msg.sender, bountyNumber);
+    }
+
+    function obtainPowerUp() external {
+        require(balanceOf(msg.sender) >= 100, "Not enough funds for POWER-UP!!");
+        _burn(msg.sender, 100); // Consume 100 tokens for a power-up
+        powerUpCounts[msg.sender]++;
+        emit PowerUpObtained(msg.sender, powerUpCounts[msg.sender]);
+    }
+
+    function getPowerUpCount(address gamer) external view returns (uint256) {
+        return powerUpCounts[gamer];
+    }
+}
